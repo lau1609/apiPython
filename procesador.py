@@ -11,36 +11,35 @@ MESES_MAPEO = {
 
 def procesar_excel_final_api(excel_bytes, mapeo_paths):
     
-    excel_principal_path = 'BD-SICHITUR.xlsx'
-
     NA_VALUES = ['#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '#DIV/0!', '#NULL!', 'N/A', 'NA', 'NULL', 'nan']
     
     try:
         df_principal = pd.read_excel(io.BytesIO(excel_bytes), na_values=NA_VALUES)
         
-
+        df_principal.columns = df_principal.columns.str.strip().str.lower().str.replace('í', 'i').str.replace('ó', 'o')
+        
         df_regiones = pd.read_excel(mapeo_paths['region'])
         df_municipios = pd.read_excel(mapeo_paths['municipio'])
         df_localidades = pd.read_excel(mapeo_paths['localidad'])
 
- 
-        df_principal = pd.merge(df_principal, df_regiones, on='Region', how='left')
-        df_principal = pd.merge(df_principal, df_municipios, on='Municipio', how='left')
-        df_principal = pd.merge(df_principal, df_localidades, on='Localidad', how='left')
-        df_principal = df_principal.drop(['Region', 'Municipio', 'Localidad'], axis=1)
-
-        df_principal['Mes_Num'] = df_principal['Mes'].astype(str).str.strip().replace(MESES_MAPEO)
-        df_principal['Año'] = pd.to_numeric(df_principal['Año'], errors='coerce', downcast='integer')
-        fecha_str = df_principal['Año'].astype(str) + '-' + df_principal['Mes_Num'].astype(str) + '-01'
-        df_principal['Fecha'] = pd.to_datetime(fecha_str, format='%Y-%m-%d', errors='coerce').dt.strftime('%d/%m/%Y')
-        df_principal = df_principal.drop(['Año', 'Mes', 'Mes_Num'], axis=1)
+        df_principal = pd.merge(df_principal, df_regiones, left_on='region', right_on='Region', how='left')
+        df_principal = pd.merge(df_principal, df_municipios, left_on='municipio', right_on='Municipio', how='left')
+        df_principal = pd.merge(df_principal, df_localidades, left_on='localidad', right_on='Localidad', how='left')
         
-        df_principal = df_principal.drop(['GPD-12', 'GPD-345'], axis=1)
+        cols_to_drop = ['region', 'municipio', 'localidad', 'Region', 'Municipio', 'Localidad']
+        df_principal = df_principal.drop([col for col in cols_to_drop if col in df_principal.columns], axis=1)
+
+        df_principal['mes_num'] = df_principal['mes'].astype(str).str.strip().replace(MESES_MAPEO)
+        df_principal['año'] = pd.to_numeric(df_principal['año'], errors='coerce', downcast='integer')
+        fecha_str = df_principal['año'].astype(str) + '-' + df_principal['mes_num'].astype(str) + '-01'
+        df_principal['Fecha'] = pd.to_datetime(fecha_str, format='%Y-%m-%d', errors='coerce').dt.strftime('%d/%m/%Y')
+        df_principal = df_principal.drop(['año', 'mes', 'mes_num'], axis=1)
+        
+        df_principal = df_principal.drop(['GPD-12', 'GPD-345'], axis=1, errors='ignore')
         
         columnas_ordenadas_ids = ['Region_ID', 'Municipio_ID', 'Localidad_ID', 'Fecha']
         columnas_remanentes = [col for col in df_principal.columns if col not in columnas_ordenadas_ids]
         df_principal = df_principal[columnas_ordenadas_ids + columnas_remanentes]
-        # ---------------------------------------------------------------------
 
         return df_principal
 
