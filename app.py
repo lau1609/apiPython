@@ -30,8 +30,9 @@ def process_data():
         if df_procesado is None:
              return jsonify({"success": False, "message": "El procesamiento interno de datos falló."}), 500
 
-        csv_output = df_procesado.to_csv(index=False, sep=',', encoding='utf-8')
+        #csv_output = df_procesado.to_csv(index=False, sep=',', encoding='utf-8')
 
+        csv_output = df_procesado.to_csv(index=False, header=False, sep=',', encoding='utf-8')
         return jsonify({"success": True, "csv_data": csv_output, "message": "Procesamiento completado."}), 200
 
     except Exception as e:
