@@ -31,8 +31,10 @@ def procesar_excel_final_api(excel_bytes, mapeo_paths):
 
         df_principal['mes_num'] = df_principal['mes'].astype(str).str.strip().replace(MESES_MAPEO)
         df_principal['año'] = pd.to_numeric(df_principal['año'], errors='coerce', downcast='integer')
+        
         fecha_str = df_principal['año'].astype(str) + '-' + df_principal['mes_num'].astype(str) + '-01'
-        df_principal['Fecha'] = pd.to_datetime(fecha_str, format='%Y-%m-%d', errors='coerce').dt.strftime('%d/%m/%Y')
+        df_principal['Fecha'] = pd.to_datetime(fecha_str, format='%Y-%m-%d', errors='coerce').dt.strftime('%Y-%m-%d')
+        
         df_principal = df_principal.drop(['año', 'mes', 'mes_num'], axis=1)
         
         df_principal = df_principal.drop(['GPD-12', 'GPD-345'], axis=1, errors='ignore')
@@ -40,6 +42,16 @@ def procesar_excel_final_api(excel_bytes, mapeo_paths):
         columnas_ordenadas_ids = ['Region_ID', 'Municipio_ID', 'Localidad_ID', 'Fecha']
         columnas_remanentes = [col for col in df_principal.columns if col not in columnas_ordenadas_ids]
         df_principal = df_principal[columnas_ordenadas_ids + columnas_remanentes]
+
+        expected_columns = 30
+        final_columns_count = len(df_principal.columns)
+        print(f"Número de columnas final: {final_columns_count}")
+
+        if final_columns_count != expected_columns:
+            raise ValueError(
+                f"La tabla final debe tener {expected_columns} columnas, pero tiene {final_columns_count}. "
+                "Verifica la eliminación y el conteo de tu Excel de origen."
+            )
 
         return df_principal
 
